@@ -1,9 +1,16 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const STORAGE_KEY = 'soro_sports_2026_react'
 const TEAM_INFO = {
   blue: { name: '청팀', classes: [1, 3, 5] },
   white: { name: '백팀', classes: [2, 4, 6] },
+}
+const DEFAULT_POINT_RULES = {
+  dodgeball: { win: 100, lose: 0 },
+  plateflip: { win: 50, lose: 0 },
+  tugofwar: { win: 100, lose: 0 },
+  relay: { win: 300, lose: 100 },
+  support: { win: 100, lose: 0 },
 }
 const PLATE_ROUND_TYPES = ['남', '여', '남', '여', '남', '여']
 const GAME_TIMERS = {
@@ -20,6 +27,7 @@ function createSupportPoints() {
 
 function createInitialState() {
   return {
+    pointRules: structuredClone(DEFAULT_POINT_RULES),
     teams: {
       blue: { ...TEAM_INFO.blue },
       white: { ...TEAM_INFO.white },
@@ -84,6 +92,7 @@ function sumSupportPoints(supportPoints) {
 }
 
 function calculateGameTotals(state) {
+  const pointRules = state.pointRules || DEFAULT_POINT_RULES
   const totals = {
     dodgeball: { blue: 0, white: 0 },
     plateflip: { blue: 0, white: 0 },
@@ -94,32 +103,39 @@ function calculateGameTotals(state) {
 
   state.games.dodgeball.matches.forEach((match) => {
     if (!match.winner) return
-    if (state.teams.blue.classes.includes(match.winner)) totals.dodgeball.blue += 100
-    else totals.dodgeball.white += 100
+    const winnerTeam = state.teams.blue.classes.includes(match.winner) ? 'blue' : 'white'
+    const loserTeam = winnerTeam === 'blue' ? 'white' : 'blue'
+    totals.dodgeball[winnerTeam] += pointRules.dodgeball.win
+    totals.dodgeball[loserTeam] += pointRules.dodgeball.lose
   })
 
   state.games.plateFlip.rounds.forEach((round) => {
     totals.plateflip.blue += Number(round.blueCount) || 0
     totals.plateflip.white += Number(round.whiteCount) || 0
-    if (round.winner === 'blue') totals.plateflip.blue += 50
-    if (round.winner === 'white') totals.plateflip.white += 50
+    if (round.winner === 'blue') {
+      totals.plateflip.blue += pointRules.plateflip.win
+      totals.plateflip.white += pointRules.plateflip.lose
+    }
+    if (round.winner === 'white') {
+      totals.plateflip.white += pointRules.plateflip.win
+      totals.plateflip.blue += pointRules.plateflip.lose
+    }
   })
 
   state.games.tugOfWar.matches.forEach((match) => {
     if (!match.winner) return
-    if (state.teams.blue.classes.includes(match.winner)) totals.tugofwar.blue += 100
-    else totals.tugofwar.white += 100
+    const winnerTeam = state.teams.blue.classes.includes(match.winner) ? 'blue' : 'white'
+    const loserTeam = winnerTeam === 'blue' ? 'white' : 'blue'
+    totals.tugofwar[winnerTeam] += pointRules.tugofwar.win
+    totals.tugofwar[loserTeam] += pointRules.tugofwar.lose
   })
 
-  if (state.games.tugOfWar.finalWinner === 'blue') totals.tugofwar.blue += 200
-  if (state.games.tugOfWar.finalWinner === 'white') totals.tugofwar.white += 200
-
   if (state.games.relay.winner === 'blue') {
-    totals.relay.blue += 300
-    totals.relay.white += 100
+    totals.relay.blue += pointRules.relay.win
+    totals.relay.white += pointRules.relay.lose
   } else if (state.games.relay.winner === 'white') {
-    totals.relay.white += 300
-    totals.relay.blue += 100
+    totals.relay.white += pointRules.relay.win
+    totals.relay.blue += pointRules.relay.lose
   }
 
   const supportTotal = sumSupportPoints(state.games.support?.supportPoints)
@@ -156,7 +172,9 @@ function App() {
     if (!saved) return createInitialState()
 
     try {
-      return JSON.parse(saved)
+      const parsed = JSON.parse(saved)
+      if (!parsed.pointRules) parsed.pointRules = structuredClone(DEFAULT_POINT_RULES)
+      return parsed
     } catch {
       return createInitialState()
     }
@@ -183,6 +201,7 @@ function App() {
     const plateFinished = state.games.plateFlip.rounds.filter((round) => round.winner).length
     const tug = state.games.tugOfWar
     const relayWinner = state.games.relay.winner
+    const relayFinished = relayWinner ? 1 : 0
     const activePlate = state.games.plateFlip.rounds[activePlateRound] || state.games.plateFlip.rounds[0]
 
     return {
@@ -209,12 +228,14 @@ function App() {
       relay: {
         title: '이어달리기 진행',
         primary: relayWinner ? `${relayWinner === 'blue' ? '청군' : '백군'} 승리` : '승패 입력 대기',
-        detail: relayWinner ? '승패 입력 완료 (승 300 / 패 100)' : '승리 팀 버튼을 선택하세요.',
+        detail: relayWinner
+          ? `승패 입력 완료 (승 ${state.pointRules.relay.win} / 패 ${state.pointRules.relay.lose})`
+          : '승리 팀 버튼을 선택하세요.',
       },
       support: {
         title: '응원·매너 점수',
         primary: `청군 ${gameTotals.support.blue} / 백군 ${gameTotals.support.white}`,
-        detail: '응원과 매너 점수를 버튼으로 입력합니다.',
+        detail: `버튼 1회 클릭 시 선택팀 +${state.pointRules.support.win}, 상대팀 +${state.pointRules.support.lose}`,
       },
     }
   }, [activePlateRound, state, gameTotals.support.blue, gameTotals.support.white])
@@ -375,11 +396,25 @@ function App() {
     setState((prev) => {
       const next = structuredClone(prev)
       if (!next.games.support) next.games.support = { supportPoints: createSupportPoints() }
-      if (typeof next.games.support.supportPoints?.[team] !== 'number') {
+      if (typeof next.games.support.supportPoints?.blue !== 'number' || typeof next.games.support.supportPoints?.white !== 'number') {
         next.games.support.supportPoints = createSupportPoints()
       }
+      const winnerTeam = team
+      const loserTeam = team === 'blue' ? 'white' : 'blue'
+      const supportRule = next.pointRules?.support || DEFAULT_POINT_RULES.support
+      next.games.support.supportPoints[winnerTeam] += Number(supportRule.win) || 0
+      next.games.support.supportPoints[loserTeam] += Number(supportRule.lose) || 0
+      return next
+    })
+  }
 
-      next.games.support.supportPoints[team] += 100
+  const updatePointRule = (gameKey, field, value) => {
+    const normalized = Math.max(0, Number(value) || 0)
+    setState((prev) => {
+      const next = structuredClone(prev)
+      if (!next.pointRules) next.pointRules = structuredClone(DEFAULT_POINT_RULES)
+      if (!next.pointRules[gameKey]) next.pointRules[gameKey] = { win: 0, lose: 0 }
+      next.pointRules[gameKey][field] = normalized
       return next
     })
   }
@@ -431,34 +466,51 @@ function App() {
   const renderSupportGame = () => {
     const supportPoints = state.games.support?.supportPoints || createSupportPoints()
     const tabTotal = gameTotals.support || { blue: 0, white: 0 }
+    const total = tabTotal.blue + tabTotal.white
+    const blueRate = total === 0 ? 50 : Math.round((tabTotal.blue / total) * 100)
+    const whiteRate = 100 - blueRate
 
     return (
       <div className="fade-in">
-        <section className="support-panel">
+        <section className="support-board">
           <div className="view-heading">
-            <h2><i className="fas fa-star"></i> 응원·매너</h2>
-            <span>버튼 1회 클릭당 +100점</span>
+            <h2><i className="fas fa-star"></i> 응원·매너 점수</h2>
+            <span>버튼 1회 클릭: 선택팀 +{state.pointRules.support.win} / 상대팀 +{state.pointRules.support.lose}</span>
           </div>
 
-          <div className="support-panel-grid">
-            <article className="support-card">
-              <h4>응원·매너 점수 입력</h4>
-              <div className="support-actions">
-                <button className="btn btn-primary" onClick={() => addSupportPoint('blue')}>
-                  청군 +100
-                </button>
-                <button className="btn btn-dark" onClick={() => addSupportPoint('white')}>
-                  백군 +100
-                </button>
+          <div className="support-main-grid">
+            <article className="support-team-card blue">
+              <span>청군</span>
+              <strong>{supportPoints.blue}</strong>
+              <button className="btn btn-primary support-btn" onClick={() => addSupportPoint('blue')}>
+                청군 선택
+              </button>
+            </article>
+
+            <article className="support-center-card">
+              <span>응원·매너 누적</span>
+              <strong>{tabTotal.blue} : {tabTotal.white}</strong>
+              <div className="plate-bar tall" aria-label="응원·매너 점수 비율">
+                <span className="blue" style={{ width: `${blueRate}%` }}></span>
+                <span className="white" style={{ width: `${whiteRate}%` }}></span>
               </div>
-              <p>청군 {supportPoints.blue}점 · 백군 {supportPoints.white}점</p>
+              <small>{blueRate}% : {whiteRate}%</small>
+            </article>
+
+            <article className="support-team-card white">
+              <span>백군</span>
+              <strong>{supportPoints.white}</strong>
+              <button className="btn btn-dark support-btn" onClick={() => addSupportPoint('white')}>
+                백군 선택
+              </button>
             </article>
           </div>
 
-          <div className="support-total">
+          <div className="support-total wide">
             <strong>응원·매너 탭 누적 점수</strong>
             <span>청군 {tabTotal.blue}점</span>
             <span>백군 {tabTotal.white}점</span>
+            <span>총점 {tabTotal.blue + tabTotal.white}점</span>
           </div>
         </section>
       </div>
@@ -844,7 +896,7 @@ function App() {
             <span className="sport-label"><i className="fas fa-running"></i> 이어달리기</span>
             <h2>승리팀 선택</h2>
           </div>
-          <p className="eyebrow">승리팀 300점 · 패배팀 100점</p>
+          <p className="eyebrow">승리팀 {state.pointRules.relay.win}점 · 패배팀 {state.pointRules.relay.lose}점</p>
         </div>
 
         <div className="versus-row">
@@ -872,6 +924,55 @@ function App() {
     </div>
   )
 
+  const renderSettings = () => {
+    const settingRows = [
+      { key: 'dodgeball', label: '피구' },
+      { key: 'plateflip', label: '판뒤집기' },
+      { key: 'tugofwar', label: '줄다리기' },
+      { key: 'relay', label: '이어달리기' },
+      { key: 'support', label: '응원·매너' },
+    ]
+
+    return (
+      <div className="fade-in">
+        <section className="settings-board">
+          <div className="view-heading">
+            <h2><i className="fas fa-gear"></i> 점수 설정</h2>
+            <span>종목별 승리/패배 점수를 원하는 값으로 수정하세요.</span>
+          </div>
+
+          <div className="settings-grid">
+            {settingRows.map((item) => (
+              <article className="settings-card" key={`settings-${item.key}`}>
+                <h3>{item.label}</h3>
+                <div className="settings-inputs">
+                  <label>
+                    <span>승리 점수</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={state.pointRules?.[item.key]?.win ?? DEFAULT_POINT_RULES[item.key].win}
+                      onChange={(event) => updatePointRule(item.key, 'win', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>패배 점수</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={state.pointRules?.[item.key]?.lose ?? DEFAULT_POINT_RULES[item.key].lose}
+                      onChange={(event) => updatePointRule(item.key, 'lose', event.target.value)}
+                    />
+                  </label>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
+    )
+  }
+
   const renderView = () => {
     switch (view) {
       case 'dodgeball': return renderDodgeball()
@@ -879,6 +980,7 @@ function App() {
       case 'tugofwar': return renderTugOfWar()
       case 'relay': return renderRelay()
       case 'support': return renderSupportGame()
+      case 'settings': return renderSettings()
       default: return renderDashboard()
     }
   }
@@ -899,6 +1001,9 @@ function App() {
           ))}
         </ul>
         <div className="sidebar-footer">
+          <button id="settings-btn" onClick={() => setView('settings')}>
+            <i className="fas fa-gear"></i> 설정
+          </button>
           <button id="reset-btn" onClick={resetAll}><i className="fas fa-undo"></i> 데이터 초기화</button>
         </div>
       </nav>

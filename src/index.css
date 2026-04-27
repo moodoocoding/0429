@@ -100,6 +100,18 @@ button {
 .sidebar-footer {
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  gap: 10px;
+}
+
+#settings-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  background: #eef2f6;
+  color: #1f2933;
+  border: 1px solid #d6dde6;
+  font-weight: 800;
 }
 
 #reset-btn {
@@ -1914,52 +1926,97 @@ select {
   font-weight: 800;
 }
 
-.support-panel {
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: 8px;
+.support-board {
+  padding: 20px;
+  border-radius: 10px;
   background: white;
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
   display: grid;
+  gap: 14px;
+}
+
+.support-main-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(220px, 0.8fr) minmax(240px, 1fr);
   gap: 12px;
 }
 
-.support-panel-grid {
+.support-team-card,
+.support-center-card {
+  min-height: 280px;
+  border-radius: 10px;
+  padding: 18px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(240px, 1fr));
-  gap: 10px;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
 }
 
-.support-card {
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #e4ebf2;
-  background: #f8fbff;
-  display: grid;
-  gap: 8px;
+.support-team-card {
+  color: white;
 }
 
-.support-card h4 {
-  font-size: 1rem;
+.support-team-card.blue {
+  background: linear-gradient(135deg, #0052d4, #4364f7);
+}
+
+.support-team-card.white {
+  background: linear-gradient(135deg, #2d3436, #636e72);
+}
+
+.support-team-card > span {
+  font-size: 1.25rem;
   font-weight: 800;
 }
 
-.support-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+.support-team-card > strong {
+  font-size: clamp(4.2rem, 9vw, 7.2rem);
+  line-height: 0.9;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
-.support-card p {
+.support-btn {
+  min-height: 54px;
+  padding: 0 20px;
+  font-size: 1.1rem;
+}
+
+.support-center-card {
+  border: 1px solid var(--line);
+  background: #f6f8fb;
+  color: var(--text-main);
+}
+
+.support-center-card > span {
   color: var(--text-muted);
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 700;
 }
 
+.support-center-card > strong {
+  font-size: 2.3rem;
+  line-height: 1;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.support-center-card .plate-bar.tall {
+  width: 100%;
+  height: 20px;
+}
+
+.support-center-card > small {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .support-total {
-  min-height: 48px;
-  padding: 12px;
+  min-height: 56px;
+  padding: 14px;
   border-radius: 8px;
   background: #f4f7fa;
   border: 1px solid #e4ebf2;
@@ -1969,6 +2026,10 @@ select {
   flex-wrap: wrap;
 }
 
+.support-total.wide {
+  justify-content: space-between;
+}
+
 .support-total strong {
   font-weight: 800;
 }
@@ -1976,6 +2037,51 @@ select {
 .support-total span {
   font-weight: 800;
   color: #47586b;
+}
+
+.settings-board {
+  padding: 20px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.settings-card {
+  padding: 14px;
+  border: 1px solid #e4ebf2;
+  border-radius: 8px;
+  background: #f8fbff;
+  display: grid;
+  gap: 10px;
+}
+
+.settings-card h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.settings-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.settings-inputs label {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-inputs span {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  font-weight: 700;
 }
 
 .fade-in {
@@ -2101,7 +2207,22 @@ select {
     grid-template-columns: 1fr;
   }
 
-  .support-panel-grid {
+  .support-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .support-team-card,
+  .support-center-card {
+    min-height: 220px;
+  }
+
+  .support-total.wide {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .support-main-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2206,6 +2327,10 @@ select {
 
   .compact-timer {
     justify-content: space-between;
+  }
+
+  .settings-inputs {
+    grid-template-columns: 1fr;
   }
 
   .tug-toolbar {
