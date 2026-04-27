@@ -303,6 +303,7 @@ function App() {
 
   const navItems = [
     { key: 'dashboard', icon: 'fa-chart-line', label: '종합 대시보드' },
+    { key: 'manual', icon: 'fa-book', label: '운영 매뉴얼' },
     { key: 'dodgeball', icon: 'fa-volleyball-ball', label: '피구' },
     { key: 'plateflip', icon: 'fa-sync-alt', label: '판뒤집기' },
     { key: 'tugofwar', icon: 'fa-people-arrows', label: '줄다리기' },
@@ -429,7 +430,7 @@ function App() {
   }
 
   const resetAll = () => {
-    if (!confirm('紐⑤뱺 ?곗씠?곕? 珥덇린?뷀븯?쒓쿋?듬땲源?')) return
+    if (!confirm('모든 데이터를 초기화하시겠습니까?')) return
     localStorage.removeItem(STORAGE_KEY)
     setState(createInitialState())
     setTimers(GAME_TIMERS)
@@ -441,23 +442,23 @@ function App() {
   const renderGameTimer = (game) => (
     <div className="game-timer">
       <div>
-        <p className="eyebrow">{gameTitles[game]} ??대㉧</p>
+        <p className="eyebrow">{gameTitles[game]} 타이머</p>
         <strong className={timers[game] <= 60 ? 'timer-display danger' : 'timer-display'}>{formatTime(timers[game])}</strong>
       </div>
       <div className="timer-controls">
-        <button className="icon-btn" title="1遺?媛먯냼" onClick={() => adjustGameTimer(game, -60)}>
+        <button className="icon-btn" title="1분 감소" onClick={() => adjustGameTimer(game, -60)}>
           <i className="fas fa-minus"></i>
         </button>
         <button className="btn btn-primary" onClick={() => setRunningTimer((current) => (current === game ? null : game))}>
           <i className={runningTimer === game ? 'fas fa-pause' : 'fas fa-play'}></i>
-          {runningTimer === game ? '?쇱떆?뺤?' : '?쒖옉'}
+          {runningTimer === game ? '일시정지' : '시작'}
         </button>
-        <button className="icon-btn" title="1遺?利앷?" onClick={() => adjustGameTimer(game, 60)}>
+        <button className="icon-btn" title="1분 증가" onClick={() => adjustGameTimer(game, 60)}>
           <i className="fas fa-plus"></i>
         </button>
         <button className="btn btn-neutral" onClick={() => resetGameTimer(game)}>
           <i className="fas fa-rotate-left"></i>
-          由ъ뀑
+          리셋
         </button>
       </div>
     </div>
@@ -586,9 +587,9 @@ function App() {
                 <strong>{formatTime(timers.dodgeball)}</strong>
                 <button className="btn btn-primary" onClick={() => setRunningTimer((current) => (current === 'dodgeball' ? null : 'dodgeball'))}>
                   <i className={runningTimer === 'dodgeball' ? 'fas fa-pause' : 'fas fa-play'}></i>
-                  {runningTimer === 'dodgeball' ? '?뺤?' : '?쒖옉'}
+                  {runningTimer === 'dodgeball' ? '정지' : '시작'}
                 </button>
-                <button className="icon-btn" title="由ъ뀑" onClick={() => resetGameTimer('dodgeball')}>
+                <button className="icon-btn" title="리셋" onClick={() => resetGameTimer('dodgeball')}>
                   <i className="fas fa-rotate-left"></i>
                 </button>
               </div>
@@ -597,15 +598,15 @@ function App() {
             <div className="active-match-grid">
               {currentRound.matches.map((match, order) => (
                 <article className="active-match-card" key={`${match.round}-${match.team1}-${match.team2}`}>
-                  <div className="match-number">{order + 1}寃쎄린</div>
+                  <div className="match-number">{order + 1}경기</div>
                   <div className="versus-row">
                     {[match.team1, match.team2].map((classNum) => (
                       (() => {
                         const statusText = !match.winner
-                          ? '?좏깮'
+                          ? '선택'
                           : match.winner === classNum
-                            ? '?밸━'
-                            : '?⑤같'
+                            ? '승리'
+                            : '패배'
 
                         return (
                       <button
@@ -691,9 +692,9 @@ function App() {
               <strong>{formatTime(timers.plateflip)}</strong>
               <button className="btn btn-primary" onClick={() => setRunningTimer((value) => (value === 'plateflip' ? null : 'plateflip'))}>
                 <i className={runningTimer === 'plateflip' ? 'fas fa-pause' : 'fas fa-play'}></i>
-                {runningTimer === 'plateflip' ? '?뺤?' : '?쒖옉'}
+                {runningTimer === 'plateflip' ? '정지' : '시작'}
               </button>
-              <button className="icon-btn" title="由ъ뀑" onClick={() => resetGameTimer('plateflip')}>
+              <button className="icon-btn" title="리셋" onClick={() => resetGameTimer('plateflip')}>
                 <i className="fas fa-rotate-left"></i>
               </button>
             </div>
@@ -701,42 +702,42 @@ function App() {
 
           <div className="plate-compact-main">
             <div className="plate-compact-team blue">
-              <span>泥??</span>
+              <span>청팀</span>
               <label className="plate-compact-score-field">
                 <input
                   type="number"
                   min="0"
                   value={current.blueCount}
                   onChange={(event) => updatePlateCount(activePlateRound, 'blue', event.target.value)}
-                  aria-label="泥?? ?먯닔 ?낅젰"
+                  aria-label="청팀 점수 입력"
                 />
               </label>
               <div className="counter-controls compact">
-                <button className="icon-btn" title="泥?? 1 媛먯냼" onClick={() => adjustPlateCount(activePlateRound, 'blue', -1)}>
+                <button className="icon-btn" title="청팀 1 감소" onClick={() => adjustPlateCount(activePlateRound, 'blue', -1)}>
                   <i className="fas fa-minus"></i>
                 </button>
-                <button className="icon-btn" title="泥?? 1 利앷?" onClick={() => adjustPlateCount(activePlateRound, 'blue', 1)}>
+                <button className="icon-btn" title="청팀 1 증가" onClick={() => adjustPlateCount(activePlateRound, 'blue', 1)}>
                   <i className="fas fa-plus"></i>
                 </button>
               </div>
             </div>
 
             <div className="plate-compact-team white">
-              <span>諛깊?</span>
+              <span>백팀</span>
               <label className="plate-compact-score-field">
                 <input
                   type="number"
                   min="0"
                   value={current.whiteCount}
                   onChange={(event) => updatePlateCount(activePlateRound, 'white', event.target.value)}
-                  aria-label="諛깊? ?먯닔 ?낅젰"
+                  aria-label="백팀 점수 입력"
                 />
               </label>
               <div className="counter-controls compact">
-                <button className="icon-btn" title="諛깊? 1 媛먯냼" onClick={() => adjustPlateCount(activePlateRound, 'white', -1)}>
+                <button className="icon-btn" title="백팀 1 감소" onClick={() => adjustPlateCount(activePlateRound, 'white', -1)}>
                   <i className="fas fa-minus"></i>
                 </button>
-                <button className="icon-btn" title="諛깊? 1 利앷?" onClick={() => adjustPlateCount(activePlateRound, 'white', 1)}>
+                <button className="icon-btn" title="백팀 1 증가" onClick={() => adjustPlateCount(activePlateRound, 'white', 1)}>
                   <i className="fas fa-plus"></i>
                 </button>
               </div>
@@ -746,7 +747,7 @@ function App() {
               <span>{current.type} / {current.id}R</span>
               <strong>{resultText}</strong>
               <p>{blueTotal} : {whiteTotal}</p>
-              <div className="plate-bar tall" aria-label={`${current.id}?쇱슫???먯닔 鍮꾩쑉`}>
+              <div className="plate-bar tall" aria-label={`${current.id}라운드별 점수 비율`}>
                 <span className="blue" style={{ width: `${bluePercent}%` }}></span>
                 <span className="white" style={{ width: `${whitePercent}%` }}></span>
               </div>
@@ -756,10 +757,11 @@ function App() {
 
           <div className="plate-compact-lower">
             <div className="plate-compact-round-section">
-              <span className="subtle-label">?쇱슫???대룞</span>
+              <span className="subtle-label">라운드 이동</span>
               <div className="plate-compact-round-nav">
                 <button className="btn btn-neutral" disabled={previous === null} onClick={() => setActivePlateRound(previous)}>
-                  ?댁쟾 ?쇱슫??                </button>
+                  이전 라운드
+                </button>
                 <div className="plate-compact-round-strip">
                   {rounds.map((round, index) => (
                     <button
@@ -772,12 +774,13 @@ function App() {
                   ))}
                 </div>
                 <button className="btn btn-neutral" disabled={next === null} onClick={() => setActivePlateRound(next)}>
-                  ?ㅼ쓬 ?쇱슫??                </button>
+                  다음 라운드
+                </button>
               </div>
             </div>
 
             <div className="plate-compact-summary">
-              <span>?꾨즺 ?쇱슫??<strong>{completedRounds}/6</strong></span>
+              <span>완료 라운드 <strong>{completedRounds}/6</strong></span>
             </div>
           </div>
         </section>
@@ -924,6 +927,59 @@ function App() {
     </div>
   )
 
+  const renderManual = () => (
+    <div className="fade-in">
+      <section className="manual-container">
+        <div className="view-heading">
+          <h2><i className="fas fa-book"></i> 운동회 운영 매뉴얼</h2>
+          <span>동학년 선생님들을 위한 운영 지침입니다.</span>
+        </div>
+
+        <div className="manual-grid">
+          <article className="manual-card">
+            <h3><i className="fas fa-info-circle"></i> 전체 개요</h3>
+            <ul>
+              <li><strong>일시:</strong> 2026년 4월 29일 (수) 09:00 - 12:00</li>
+              <li><strong>장소:</strong> 학교 운동장</li>
+              <li><strong>준비물:</strong> 호각, 타이머(본 앱), 각 종목별 도구</li>
+              <li><strong>진행순서:</strong> 개회식 → 피구 → 판뒤집기 → 줄다리기 → 이어달리기 → 폐회식</li>
+            </ul>
+          </article>
+
+          <article className="manual-card">
+            <h3><i className="fas fa-volleyball-ball"></i> 피구 규칙</h3>
+            <ul>
+              <li><strong>경기 시간:</strong> 라운드당 7분</li>
+              <li><strong>인원:</strong> 학급 전원 참여 (내야/외야 구분)</li>
+              <li><strong>승리 조건:</strong> 종료 시 내야 인원이 더 많은 반</li>
+              <li><strong>교사 역할:</strong> 심판 1명(중앙), 인원 체크 및 안전 지도 1명</li>
+            </ul>
+          </article>
+
+          <article className="manual-card">
+            <h3><i className="fas fa-sync-alt"></i> 판뒤집기 규칙</h3>
+            <ul>
+              <li><strong>경기 방식:</strong> 남학생/여학생 교대로 6라운드 진행</li>
+              <li><strong>승리 조건:</strong> 자신의 팀 색깔이 더 많이 보이도록 뒤집기</li>
+              <li><strong>교사 역할:</strong> 경기 시작/종료 신호, 종료 후 판 개수 집계</li>
+              <li><strong>주의사항:</strong> 손가락 부상 주의, 종료 신호 후 손 떼기 철저히 지도</li>
+            </ul>
+          </article>
+
+          <article className="manual-card">
+            <h3><i className="fas fa-people-arrows"></i> 줄다리기 규칙</h3>
+            <ul>
+              <li><strong>경기 방식:</strong> 토너먼트 형식으로 진행</li>
+              <li><strong>승리 조건:</strong> 중앙 표시선이 자기 쪽으로 넘어오게 당기기</li>
+              <li><strong>교사 역할:</strong> 줄 중앙 정렬 확인, 시작 신호, 장갑 착용 확인</li>
+              <li><strong>안전:</strong> 줄에 몸을 감지 않도록 주의, 넘어진 학생 발생 시 즉시 중단</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </div>
+  )
+
   const renderSettings = () => {
     const settingRows = [
       { key: 'dodgeball', label: '피구' },
@@ -975,6 +1031,7 @@ function App() {
 
   const renderView = () => {
     switch (view) {
+      case 'manual': return renderManual()
       case 'dodgeball': return renderDodgeball()
       case 'plateflip': return renderPlateFlip()
       case 'tugofwar': return renderTugOfWar()
