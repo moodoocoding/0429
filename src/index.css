@@ -2047,6 +2047,18 @@ select {
   box-shadow: var(--shadow);
 }
 
+.settings-save-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.settings-save-row small {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

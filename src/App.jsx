@@ -15,10 +15,14 @@ const DEFAULT_POINT_RULES = {
 const PLATE_ROUND_TYPES = ['남', '여', '남', '여', '남', '여']
 const GAME_TIMERS = {
   dodgeball: 7 * 60,
-  plateflip: 7 * 60,
+  plateflip: 5 * 60,
   tugofwar: 7 * 60,
   relay: 7 * 60,
   support: 7 * 60,
+}
+const DEFAULT_TIMER_SETTINGS = {
+  dodgeball: GAME_TIMERS.dodgeball,
+  plateflip: GAME_TIMERS.plateflip,
 }
 
 function createSupportPoints() {
@@ -28,6 +32,7 @@ function createSupportPoints() {
 function createInitialState() {
   return {
     pointRules: structuredClone(DEFAULT_POINT_RULES),
+    timerSettings: structuredClone(DEFAULT_TIMER_SETTINGS),
     teams: {
       blue: { ...TEAM_INFO.blue },
       white: { ...TEAM_INFO.white },
@@ -130,6 +135,12 @@ function calculateGameTotals(state) {
     totals.tugofwar[loserTeam] += pointRules.tugofwar.lose
   })
 
+  if (state.games.tugOfWar.finalWinner === 'blue') {
+    totals.tugofwar.blue += 200
+  } else if (state.games.tugOfWar.finalWinner === 'white') {
+    totals.tugofwar.white += 200
+  }
+
   if (state.games.relay.winner === 'blue') {
     totals.relay.blue += pointRules.relay.win
     totals.relay.white += pointRules.relay.lose
@@ -166,25 +177,43 @@ function classTeam(classNum) {
   return TEAM_INFO.blue.classes.includes(Number(classNum)) ? 'blue' : 'white'
 }
 
-function App() {
-  const [state, setState] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (!saved) return createInitialState()
+function normalizeTimerSettings(settings) {
+  return {
+    dodgeball: Math.max(0, Number(settings?.dodgeball) || DEFAULT_TIMER_SETTINGS.dodgeball),
+    plateflip: Math.max(0, Number(settings?.plateflip) || DEFAULT_TIMER_SETTINGS.plateflip),
+  }
+}
 
-    try {
-      const parsed = JSON.parse(saved)
-      if (!parsed.pointRules) parsed.pointRules = structuredClone(DEFAULT_POINT_RULES)
-      return parsed
-    } catch {
-      return createInitialState()
-    }
-  })
+function createTimersFromSettings(settings) {
+  return {
+    ...GAME_TIMERS,
+    ...normalizeTimerSettings(settings),
+  }
+}
+
+function loadStateFromStorage() {
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (!saved) return createInitialState()
+
+  try {
+    const parsed = JSON.parse(saved)
+    if (!parsed.pointRules) parsed.pointRules = structuredClone(DEFAULT_POINT_RULES)
+    parsed.timerSettings = normalizeTimerSettings(parsed.timerSettings)
+    return parsed
+  } catch {
+    return createInitialState()
+  }
+}
+
+function App() {
+  const [state, setState] = useState(loadStateFromStorage)
   const [view, setView] = useState('dashboard')
   const [now, setNow] = useState(new Date())
-  const [timers, setTimers] = useState(GAME_TIMERS)
+  const [timers, setTimers] = useState(() => createTimersFromSettings(loadStateFromStorage().timerSettings))
   const [runningTimer, setRunningTimer] = useState(null)
   const [activePlateRound, setActivePlateRound] = useState(0)
   const [activeDodgeRound, setActiveDodgeRound] = useState(1)
+  const [settingsSavedAt, setSettingsSavedAt] = useState(null)
 
   const gameTotals = useMemo(() => calculateGameTotals(state), [state])
   const scores = useMemo(() => calculateScores(state), [state])
@@ -420,9 +449,20 @@ function App() {
     })
   }
 
+  const updateTimerSettingMinutes = (gameKey, value) => {
+    const minutes = Math.max(0, Number(value) || 0)
+    setState((prev) => {
+      const next = structuredClone(prev)
+      if (!next.timerSettings) next.timerSettings = structuredClone(DEFAULT_TIMER_SETTINGS)
+      next.timerSettings[gameKey] = minutes * 60
+      return next
+    })
+  }
+
   const resetGameTimer = (game) => {
     setRunningTimer((current) => (current === game ? null : current))
-    setTimers((prev) => ({ ...prev, [game]: GAME_TIMERS[game] }))
+    const startSeconds = state.timerSettings?.[game] ?? GAME_TIMERS[game]
+    setTimers((prev) => ({ ...prev, [game]: startSeconds }))
   }
 
   const adjustGameTimer = (game, amount) => {
@@ -433,10 +473,15 @@ function App() {
     if (!confirm('모든 데이터를 초기화하시겠습니까?')) return
     localStorage.removeItem(STORAGE_KEY)
     setState(createInitialState())
-    setTimers(GAME_TIMERS)
+    setTimers(createTimersFromSettings(DEFAULT_TIMER_SETTINGS))
     setRunningTimer(null)
     setActivePlateRound(0)
     setView('dashboard')
+  }
+
+  const saveSettings = () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    setSettingsSavedAt(new Date())
   }
 
   const renderGameTimer = (game) => (
@@ -997,6 +1042,13 @@ function App() {
             <span>종목별 승리/패배 점수를 원하는 값으로 수정하세요.</span>
           </div>
 
+          <div className="settings-save-row">
+            <button className="btn btn-primary" onClick={saveSettings}>
+              <i className="fas fa-floppy-disk"></i> 저장
+            </button>
+            {settingsSavedAt ? <small>{settingsSavedAt.toLocaleTimeString('ko-KR')} 저장 완료</small> : null}
+          </div>
+
           <div className="settings-grid">
             {settingRows.map((item) => (
               <article className="settings-card" key={`settings-${item.key}`}>
@@ -1023,6 +1075,32 @@ function App() {
                 </div>
               </article>
             ))}
+          </div>
+
+          <div className="settings-grid">
+            <article className="settings-card">
+              <h3>경기 시작 시간 (분)</h3>
+              <div className="settings-inputs">
+                <label>
+                  <span>피구</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={(state.timerSettings?.dodgeball ?? DEFAULT_TIMER_SETTINGS.dodgeball) / 60}
+                    onChange={(event) => updateTimerSettingMinutes('dodgeball', event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>판뒤집기</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={(state.timerSettings?.plateflip ?? DEFAULT_TIMER_SETTINGS.plateflip) / 60}
+                    onChange={(event) => updateTimerSettingMinutes('plateflip', event.target.value)}
+                  />
+                </label>
+              </div>
+            </article>
           </div>
         </section>
       </div>
